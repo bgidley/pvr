@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+import subprocess
 from argparse import ArgumentParser
 
 import av
-import logging
-
-import subprocess
 
 logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 rootLogger = logging.getLogger()
@@ -28,13 +27,11 @@ rootLogger.addHandler(consoleHandler)
 
 parser = ArgumentParser()
 parser.add_argument("input", help="Input video file - typically a TS")
-parser.add_argument("output", help="Output video file")
 parser.add_argument("--dry-run", dest="dry", action='store_true', default=False)
 args = parser.parse_args()
 logging.debug("Arguments: %s", args)
 
 inputContainer = av.open(args.input)
-outputContainer = av.open(args.output, mode="w")
 
 commandLine = "ffmpeg -i \"{}\"".format(args.input)
 
@@ -52,7 +49,8 @@ for i, audioStream in enumerate(inputContainer.streams.audio):
     if audioStream.language == 'eng' and audioStream.layout.name == "stereo":
         commandLine += ' -map 0:{}:a -c:a ac3 -strict -2 -q:a 128k -ar 48000'.format(audioStream.index)
 
-commandLine += ' -movflags faststart -analyzeduration 6000 -probesize 1000000 -sn -y {}'.format(args.output)
+commandLine += ' -movflags faststart -analyzeduration 6000 -probesize 1000000 -sn -y "{}"'.format(
+    args.input.replace(".ts", ".mp4"))
 
 if args.dry:
     print(commandLine)

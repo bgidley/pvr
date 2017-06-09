@@ -31,6 +31,7 @@ parser.add_argument("--dry-run", dest="dry", action='store_true', default=False)
 args = parser.parse_args()
 logging.debug("Arguments: %s", args)
 
+assert args.input.endswith(".ts")
 inputContainer = av.open(args.input)
 
 commandLine = "ffmpeg -i \"{}\"".format(args.input)
@@ -42,7 +43,7 @@ if videoStream.name == 'h264':
     commandLine += " -map 0:v -c:v copy"
 else:
     # Video Transcode
-    commandLine += " -map 0:v -c:v -c:v libx264 -crf 20 -profile:v high -level 4.1"
+    commandLine += " -map 0:v -c:v libx264 -crf 20 -profile:v high -level 4.1"
 
 for i, audioStream in enumerate(inputContainer.streams.audio):
     logging.debug(audioStream)

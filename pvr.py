@@ -15,6 +15,7 @@
 import logging
 import subprocess
 from argparse import ArgumentParser
+from pathlib import Path
 
 import av
 
@@ -27,6 +28,7 @@ rootLogger.addHandler(consoleHandler)
 
 parser = ArgumentParser()
 parser.add_argument("input", help="Input video file - typically a TS")
+parser.add_argument("output", help="Output directory")
 parser.add_argument("--dry-run", dest="dry", action='store_true', default=False)
 args = parser.parse_args()
 logging.debug("Arguments: %s", args)
@@ -50,8 +52,13 @@ for i, audioStream in enumerate(inputContainer.streams.audio):
     if audioStream.language == 'eng' and audioStream.layout.name == "stereo":
         commandLine += ' -map 0:{}:a -c:a ac3 -strict -2 -q:a 128k -ar 48000'.format(audioStream.index)
 
+inputPath = Path(args.input)
+outputDir = Path(args.output)
+assert outputDir.is_dir() and outputDir.exists()
+output = Path(outputDir, inputPath.stem + '.mp4')
+
 commandLine += ' -movflags faststart -analyzeduration 6000 -probesize 1000000 -sn -y "{}"'.format(
-    args.input.replace(".ts", ".mp4"))
+    output)
 
 if args.dry:
     print(commandLine)

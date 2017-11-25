@@ -33,7 +33,7 @@ parser.add_argument("--dry-run", dest="dry", action='store_true', default=False)
 args = parser.parse_args()
 logging.debug("Arguments: %s", args)
 
-assert args.input.endswith(".ts")
+assert args.input.endswith(".ts") or args.input.endswith(".mkv")
 inputContainer = av.open(args.input)
 
 commandLine = "ffmpeg -i \"{}\"".format(args.input)
@@ -47,10 +47,17 @@ else:
     # Video Transcode
     commandLine += " -map 0:v -c:v libx264 -crf 20 -profile:v high -level 4.1"
 
+mapped_audio = False
 for i, audioStream in enumerate(inputContainer.streams.audio):
     logging.debug(audioStream)
     if audioStream.language == 'eng' and audioStream.layout.name == "stereo":
         commandLine += ' -map 0:{}:a -c:a ac3 -strict -2 -q:a 128k -ar 48000'.format(audioStream.index)
+        mapped_audio = True
+
+if not mapped_audio:
+    commandLine += ' -map 0:1:a -c:a ac3 -strict -2 -q:a 128k -ar 48000'
+
+
 
 inputPath = Path(args.input)
 outputDir = Path(args.output)

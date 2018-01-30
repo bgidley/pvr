@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2017 Ben Gidley
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,39 +37,41 @@ logging.debug("Arguments: %s", args)
 assert args.input.endswith(".ts") or args.input.endswith(".mkv")
 inputContainer = av.open(args.input)
 
-commandLine = "ffmpeg -i \"{}\"".format(args.input)
+transcodeCommandLine = "ffmpeg -i \"{}\"".format(args.input)
 
 assert len(inputContainer.streams.video) == 1
 videoStream = inputContainer.streams[0]
+
 if videoStream.name == 'h264':
     # Convert without Video transcode
-    commandLine += " -map 0:v -c:v copy"
+    transcodeCommandLine += " -map 0:v -c:v copy"
 else:
     # Video Transcode
-    commandLine += " -map 0:v -c:v libx264 -crf 20 -profile:v high -level 4.1"
+    transcodeCommandLine += " -map 0:v -c:v libx264 -crf 20 -profile:v high -level 4.1"
 
 mapped_audio = False
 for i, audioStream in enumerate(inputContainer.streams.audio):
     logging.debug(audioStream)
-    if audioStream.language == 'eng' and audioStream.layout.name == "stereo":
-        commandLine += ' -map 0:{}:a -c:a ac3 -strict -2 -q:a 128k -ar 48000'.format(audioStream.index)
-        mapped_audio = True
-
-if not mapped_audio:
-    commandLine += ' -map 0:1:a -c:a ac3 -strict -2 -q:a 128k -ar 48000'
-
-
+    if audioStream.name == 'mp2':
+        #  SD Content most likely so only take first audio channel
+        transcodeCommandLine += ' -map 0:{}:a -c:a aac -strict -2 -b:a 160k -ar 48000'.format(audioStream.index)
+        break
+    elif audioStream.channels == 0:
+        # Empty Channels can be caused by missing AD tracks
+        pass
+    else:
+        transcodeCommandLine += ' -map 0:{}:a -c:a aac -strict -2 -b:a 160k -ar 48000'.format(audioStream.index)
 
 inputPath = Path(args.input)
 outputDir = Path(args.output)
 assert outputDir.is_dir() and outputDir.exists()
 output = Path(outputDir, inputPath.stem + '.mp4')
 
-commandLine += ' -movflags faststart -analyzeduration 6000 -probesize 1000000 -sn -y "{}"'.format(
+transcodeCommandLine += ' -movflags faststart -analyzeduration 6000 -probesize 1000000 -sn -y "{}"'.format(
     output)
 
 if args.dry:
-    print(commandLine)
+    print(transcodeCommandLine)
 else:
     print("Executing")
-    subprocess.run(args=[commandLine], shell=True)
+    subprocess.run(args=[transcodeCommandLine], shell=True)

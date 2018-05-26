@@ -67,7 +67,7 @@ def cli():
     assert outputDir.is_dir() and outputDir.exists()
     output = Path(outputDir, inputPath.stem + '.mp4')
 
-    commandLine += ' -movflags faststart -analyzeduration 6000 -probesize 1000000 -sn -y "{}"'.format(
+    transcodeCommandLine += ' -movflags faststart -analyzeduration 6000 -probesize 1000000 -sn -y "{}"'.format(
         output)
 
     if args.dry:
